@@ -1,0 +1,368 @@
+---
+title: "Customer Churn Analysis"
+author: "Max Kutschinski"
+date: "`r Sys.Date()`"
+output:
+  pdf_document:
+    toc: yes
+    fig_caption: yes
+  html_document:
+    toc: yes
+    df_print: paged
+header-includes:
+- \usepackage{graphicx}
+- \usepackage{float}
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, comment = NA, fig.pos = "H")
+library(reticulate)
+```
+
+```{python, include = F}
+import pandas as pd
+import matplotlib.pyplot as plt
+import plotly.express as px
+import numpy as np
+import seaborn as sns
+from wordcloud import WordCloud
+from wordcloud import ImageColorGenerator
+from wordcloud import STOPWORDS
+import matplotlib.patches as mpatches
+```
+
+\newpage
+
+# Introduction
+
+Interested in churn rate, retention rate
+
+Does churn rate depend on tenure of the customers?
+
+so increasing the value of your existing customers is a great way to drive growth.
+
+```{python, include=F}
+data = pd.read_csv("CustomerChurn.csv")
+# drop irrelevant features
+data.drop(["Count", "Country", "State", "Lat Long", "Churn Score"], axis = 1, inplace = True)
+# correct data types
+data[["Zip Code", "Churn Value"]] = data[["Zip Code", "Churn Value"]].astype(str)
+data[["Total Charges"]] = data[["Total Charges"]].replace(' ','-1000', regex=True)
+data[["Total Charges"]] = data[["Total Charges"]].astype(float)
+data[["Total Charges"]] = data[["Total Charges"]].replace(-1000,np.nan, regex=True)
+#data.info()
+#data.nunique()
+
+
+```
+
+\newpage
+
+# Exploratory Data Analysis
+
+The data set contains 7043 observations and 33 features. Each observation corresponds to a different customer, whereas the features relate to demographic information of the customers, such as gender, age, and location, as well as the types of services purchased and their cost. Figure 1 shows that Telco customers are located in California and clustered around big cities such as Los Angeles, San Francisco, and San Jose. There also doesn't seem to be any apparent relationship between churn rate and customer location.
+\newline
+
+
+
+```{python, include=F, }
+fig = px.scatter_mapbox(data,lat='Latitude',lon='Longitude', zoom = 4.4, opacity = 0.2, center = dict(lat=37, lon=-115), color = "Churn Label", color_discrete_sequence = ['#EF553B','#636EFA'])
+fig.update_layout(mapbox_style="open-street-map", hovermode = False)
+fig.update_layout(title = 'Customer Locations', title_x=0.5, title_font = dict(size = 40), legend_font_size = 22, legend = dict(x=0.01,y=0.99, bgcolor = "#EAEAF1"))
+fig.write_image('map.png', width = 1500, height = 800)
+
+```
+
+![Customers are located in California and clustered around large metropolitans. There does not appear to be a relationship between churn rate and customer location.](map.png)
+
+
+
+
+```{python, include=F, fig.cap="\\label{fig:figs}The current churn rate is around 25%."}
+sns.set_theme()
+sns.set(rc={'figure.figsize':(7,5)})
+
+def without_hue(plot, feature):
+    total = len(feature)
+    for p in plot.patches:
+        percentage = '{:.1f}%'.format(100 * p.get_height()/total)
+        x = p.get_x() + p.get_width() / 2 - 0.05
+        y = p.get_y() + p.get_height()
+        plot.annotate(percentage, (x, y), size = 15)
+
+def with_hue(plot, feature, Number_of_categories, hue_categories):
+    a = [p.get_height() for p in plot.patches]
+    patch = [p for p in plot.patches]
+    for i in range(Number_of_categories):
+        total = feature.value_counts().values[i]
+        for j in range(hue_categories):
+            percentage = '{:.1f}%'.format(100 * a[(j*Number_of_categories + i)]/total)
+            x = patch[(j*Number_of_categories + i)].get_x() + patch[(j*Number_of_categories + i)].get_width() / 2 - 0.15
+            y = patch[(j*Number_of_categories + i)].get_y() + patch[(j*Number_of_categories + i)].get_height() 
+            plot.annotate(percentage, (x, y), size = 12)
+    
+
+plot2 = sns.countplot(x="Churn Label", data = data, palette = ['#C97E97','#A6ABF5'])
+plt.suptitle("      Churn Percentage", fontsize = 28)
+plt.ylabel("Count", fontsize = 22)
+plt.xlabel("Churned", fontsize= 22)
+plt.xticks(fontsize= 20) 
+plt.yticks(fontsize= 20) 
+plt.tight_layout()
+fig2 = without_hue(plot2, data["Churn Label"])
+plt.savefig('fig2.png')
+plt.show()
+```
+
+\begin{figure}
+  \begin{minipage}[t]{0.5\textwidth}
+  \hfill\break
+        The current churn rate is around 25\%. In other words, approximately 1 out of 4 customers ended up \-cancelling their business with the company (Figure 2), which is quite high. One way of gauging the incurred loss due to churned customers is by estimating their overall value to the company. The customer lifetime value (CLTV) estimates a customer's value and is calculated using corporate formulas and existing data. The higher the value, the more valuable the customer. High value customers should be monitored for churn since they are the most profitabland it costs less to keep existing customers than it does to acquire new ones. 
+  \end{minipage}
+  \begin{minipage}[t]{0.5\textwidth}\raggedleft
+  \raisebox{\dimexpr-\height+\ht\strutbox\relax}{\includegraphics[width=\linewidth]{fig2.png}}
+  \caption{The current churn rate is around 25\%.}
+  \end{minipage}
+\end{figure}
+\newpage
+
+Figure 3 displays how the CLTV is distributed among churned and and non-churned customers. 
+It also takes into account total number of months that the customer has been with the company. On average, churned customers have a lower life-time value to the company. Furthermore, long-term customers have a higher value and are less likely to churn.
+
+```{python, echo=F, fig.cap = "On average, the estimated CLTV is lower in churned customers. Long-term customers have a higher value and are less likely to churn."}
+import warnings
+warnings.filterwarnings("ignore")
+
+plt.rcParams["figure.figsize"] = [7.00, 3]
+plt.rcParams["figure.autolayout"] = True
+fig, ax =plt.subplots(1,2)
+sns.boxplot(data= data, y="CLTV", x = "Churn Label", order = ["No", "Yes"], ax = ax[0], palette = ['#A6ABF5','#C97E97'])
+sns.scatterplot(data= data, x="Tenure Months", y = "CLTV", hue = "Churn Label", ax = ax[1], alpha = 0.1,palette = ['#EF553B','#636EFA'])
+ax[0].set(xlabel = "Churned")
+ax[1].legend(loc='upper left', title = 'Churned', prop={'size': 8}, title_fontsize = 8)
+fig.suptitle("Distribution of Customer Lifetime Values")
+plt.show()
+
+# data.groupby("Churn Label")["Monthly Charges"].sum()
+#((data.groupby("Churn Label")["Monthly Charges"].sum())["Yes"])/(data["Monthly Charges"].sum())
+```
+
+The data set also contains information on the total monthly charges for each customer. This can be used to calculate the total revenue that is lost due to churned customers. Overall, churned customers constitute around $140,000 in lost revenue, which translates to 30% of total revenue. Figure 4 summarizes the distribution of monthly charges across churned and non-churned customers and indicates that higher monthly charges seem to correlate with higher churn rates.
+
+
+```{python, echo = F, fig.cap = "Higher monthly charges are correlated with higher churn rates"}
+plt.rcParams["figure.figsize"] = [7.00, 3]
+plt.rcParams["figure.autolayout"] = True
+fig, ax =plt.subplots(1,1)
+sns.histplot(data=data, x="Monthly Charges", hue = "Churn Label", palette = ['#EF553B','#636EFA'])
+fig.suptitle("Distribution of Monthly Charges Given Churn Status")
+ax.set(xlabel = "Monthly Charges ($)")
+# add legend
+top_bar = mpatches.Patch(color='#A6ABF5', label='No')
+bottom_bar = mpatches.Patch(color='#C97E97', label='Yes')
+plt.legend(handles=[bottom_bar, top_bar], title = "Churned")
+```
+
+\newpage
+
+Total monthly charges are calculated based on different services that a customer is subscribed to. These services involve phone service, internet service, multiple lines, online security, online backup, device protection, and tech support. Figure 5 summarizes the popularity of these services by displaying the number of customers subscribed to them, as well as the churn rate within each service. The majority of customers are subscribed to phone and internet services, whereas tech support and online security are the least popular services. Furthermore, customers that are subscribed to less popular services seem to be less likely to churn.
+
+```{python, include =F}
+names = ["Phone Service", "Internet Service", "Multiple Lines", "Online Security", "Online Backup", "Device Protection", "Tech Support"]
+vals = []
+vals.append((data["Phone Service"].value_counts())["Yes"])
+vals.append((data["Internet Service"].value_counts())["Fiber optic"]+(data["Internet Service"].value_counts())["DSL"])
+vals.append((data["Multiple Lines"].value_counts())["Yes"])
+vals.append((data["Online Security"].value_counts())["Yes"])
+vals.append((data["Online Backup"].value_counts())["Yes"])
+vals.append((data["Device Protection"].value_counts())["Yes"])
+vals.append((data["Tech Support"].value_counts())["Yes"])
+neu = pd.DataFrame({'Service': names, 'Number of Subscribers' : vals}).sort_values("Number of Subscribers", ascending = False)
+
+data2 = data[data["Churn Label"]=='Yes']
+vals = []
+vals.append((data2["Phone Service"].value_counts())["Yes"])
+vals.append((data2["Internet Service"].value_counts())["Fiber optic"]+(data["Internet Service"].value_counts())["DSL"])
+vals.append((data2["Multiple Lines"].value_counts())["Yes"])
+vals.append((data2["Online Security"].value_counts())["Yes"])
+vals.append((data2["Online Backup"].value_counts())["Yes"])
+vals.append((data2["Device Protection"].value_counts())["Yes"])
+vals.append((data2["Tech Support"].value_counts())["Yes"])
+neu2 = pd.DataFrame({'Service': names, 'Number of Subscribers' : vals}).sort_values("Number of Subscribers", ascending = False)
+```
+
+```{python, echo=F, results='hide', fig.cap = "The majority of customers are subscribed to phone and internet services. Tech support and online security are the least popular services. Churn rate decreases with popularity."}
+plt.rcParams["figure.figsize"] = [7.00, 3]
+plt.rcParams["figure.autolayout"] = True
+fig, ax =plt.subplots(1,1)
+bar1 = sns.barplot(data = neu, y = "Service", x = "Number of Subscribers", orient = 'h', color = '#A6ABF5')
+# bar chart 2 -> bottom bars (group of 'Churned=Yes')
+bar2 = sns.barplot(x="Number of Subscribers", y="Service", data=neu2, estimator=sum, ci=None,  color='#C97E97')
+fig.suptitle('Churn Rate and Popularity of Different Services')
+ax.set_xlim(0,7043);
+
+# add legend
+top_bar = mpatches.Patch(color='#A6ABF5', label='No')
+bottom_bar = mpatches.Patch(color='#C97E97', label='Yes')
+plt.legend(handles=[bottom_bar, top_bar], title = "Churned")
+plt.show();
+```
+
+
+
+Customers can choose between three different types of contracts: month-to-month, one year, and two year. In addition, they have the option to opt in to paperless billing choose between different payment methods. Churn rates among different payment related variables are displayed in Figure 6. 
+
+```{python, include =F}
+# Create df for contracts
+
+names = ["Month-to-month", "Two year", "One year"]
+vals = []
+vals.append((data["Contract"].value_counts())["Month-to-month"])
+vals.append((data["Contract"].value_counts())["Two year"])
+vals.append((data["Contract"].value_counts())["One year"])
+neu = pd.DataFrame({'Contract Type': names, 'Number of Customers' : vals}).sort_values("Number of Customers", ascending = False)
+
+data2 = data[data["Churn Label"]=='Yes']
+vals = []
+vals.append((data2["Contract"].value_counts())["Month-to-month"])
+vals.append((data2["Contract"].value_counts())["Two year"])
+vals.append((data2["Contract"].value_counts())["One year"])
+neu2 = pd.DataFrame({'Contract Type': names, 'Number of Customers' : vals}).sort_values("Number of Customers", ascending = False)
+```
+
+```{python, include =F}
+# Create df for payment method
+
+names = ["Mailed Check", "e-Check", "Bank Transfer", "Credit Card"]
+vals = []
+vals.append((data["Payment Method"].value_counts())["Mailed check"])
+vals.append((data["Payment Method"].value_counts())["Electronic check"])
+vals.append((data["Payment Method"].value_counts())["Bank transfer (automatic)"])
+vals.append((data["Payment Method"].value_counts())["Credit card (automatic)"])
+neu3 = pd.DataFrame({'Payment Method': names, 'Number of Customers' : vals}).sort_values("Number of Customers", ascending = False)
+
+vals = []
+vals.append((data2["Payment Method"].value_counts())["Mailed check"])
+vals.append((data2["Payment Method"].value_counts())["Electronic check"])
+vals.append((data2["Payment Method"].value_counts())["Bank transfer (automatic)"])
+vals.append((data2["Payment Method"].value_counts())["Credit card (automatic)"])
+neu4 = pd.DataFrame({'Payment Method': names, 'Number of Customers' : vals}).sort_values("Number of Customers", ascending = False)
+```
+
+```{python, echo=F, fig.cap = "Long-term contracts have very low churn rates, but are also less popular. Paying with electronic check is the most common and has the highest churn rate."}
+plt.rcParams["figure.figsize"] = [7.00, 3]
+plt.rcParams["figure.autolayout"] = True
+fig, ax = plt.subplots(1,2)
+
+bar1 = sns.barplot(ax = ax[0], data = neu, x = "Contract Type", y = "Number of Customers", color = '#A6ABF5')
+bar2 = sns.barplot(ax = ax[0], data=neu2, x = "Contract Type", y = "Number of Customers", estimator=sum, ci=None,  color='#C97E97')
+ax[0].tick_params(axis='x', labelrotation= 30)
+
+bar3 = sns.barplot(ax = ax[1], data = neu3, x = "Payment Method", y = "Number of Customers", color = '#A6ABF5')
+bar4 = sns.barplot(ax = ax[1], data = neu4, x = "Payment Method", y = "Number of Customers", estimator=sum, ci=None,  color='#C97E97')
+ax[1].tick_params(axis='x', labelrotation= 30)
+
+# add legend
+top_bar = mpatches.Patch(color='#A6ABF5', label='No')
+bottom_bar = mpatches.Patch(color='#C97E97', label='Yes')
+fig.legend(handles=[bottom_bar, top_bar], title = "Churned")
+fig.suptitle("Churn Rates Across Contract and Payment Types")
+plt.show();
+```
+
+Month-to-month contracts are the most popular option and are associated with the highest churn rates. On the other hand, long-term contracts are less popular but have a very low churn rate. Most customers pay via electronic check, which has a higher churn rate than other payment methods.
+\newline
+
+Demographic information on the customers include whether they are a senior citizen, have dependents, or have a partner, as well as their gender. Figure 7 plots churn rates by taking into account demographic information.
+
+```{python, include =F}
+# Create df for Gender
+
+names = ["Male", "Female"]
+vals = []
+vals.append((data["Gender"].value_counts())["Male"])
+vals.append((data["Gender"].value_counts())["Female"])
+neu = pd.DataFrame({'Gender': names, 'Number of Customers' : vals}).sort_values("Number of Customers", ascending = False)
+
+data2 = data[data["Churn Label"]=='Yes']
+vals = []
+vals.append((data2["Gender"].value_counts())["Male"])
+vals.append((data2["Gender"].value_counts())["Female"])
+neu2 = pd.DataFrame({'Gender': names, 'Number of Customers' : vals}).sort_values("Number of Customers", ascending = False)
+```
+
+```{python, include =F}
+# Create df for Demographic
+
+names = ["Senior", "Dependents", "Partner"]
+vals = []
+vals.append((data["Senior Citizen"].value_counts())["Yes"])
+vals.append((data["Dependents"].value_counts())["Yes"])
+vals.append((data["Partner"].value_counts())["Yes"])
+neu3 = pd.DataFrame({'Other Attributes': names, 'Number of Customers' : vals}).sort_values("Number of Customers", ascending = False)
+
+vals = []
+vals.append((data2["Senior Citizen"].value_counts())["Yes"])
+vals.append((data2["Dependents"].value_counts())["Yes"])
+vals.append((data2["Partner"].value_counts())["Yes"])
+neu4 = pd.DataFrame({'Other Attributes': names, 'Number of Customers' : vals}).sort_values("Number of Customers", ascending = False)
+```
+
+
+```{python, echo=F, fig.cap = "Churn rates do not differ between genders. Customers with dependents have a comparatively low churn rate."}
+plt.rcParams["figure.figsize"] = [7.00, 3]
+plt.rcParams["figure.autolayout"] = True
+fig, ax = plt.subplots(1,2)
+
+bar1 = sns.barplot(ax = ax[0], data = neu, x = "Gender", y = "Number of Customers", color = '#A6ABF5')
+bar2 = sns.barplot(ax = ax[0], data=neu2, x = "Gender", y = "Number of Customers", estimator=sum, ci=None,  color='#C97E97')
+
+bar3 = sns.barplot(ax = ax[1], data = neu3, x = "Other Attributes", y = "Number of Customers", color = '#A6ABF5')
+bar4 = sns.barplot(ax = ax[1], data = neu4, x = "Other Attributes", y = "Number of Customers", estimator=sum, ci=None,  color='#C97E97')
+ax[1].tick_params(axis='x', labelrotation= 0)
+
+# add legend
+top_bar = mpatches.Patch(color='#A6ABF5', label='No')
+bottom_bar = mpatches.Patch(color='#C97E97', label='Yes')
+fig.legend(handles=[bottom_bar, top_bar], title = "Churned")
+fig.suptitle("Churn Rates Across Demographic Information")
+plt.show();
+```
+
+There are a roughly equal number of male and female customers. The churn rate does not differ significantly between the two genders. Furthermore, customers with dependents have a relatively low churn rate. 
+
+```{python, include=F, fig.cap="\\label{fig:figs}The most common churn reasons can be attributed to competitors and negative customer support experiences"}
+# transfor text data
+texdata = data[~data["Churn Reason"].isnull()]["Churn Reason"]
+
+sns.set(rc={'figure.figsize':(7,5)})
+
+fig, ax =plt.subplots(1,1)
+text = " ".join(i for i in texdata)
+stopwords = set(STOPWORDS)
+wordcloud = WordCloud(collocations=False,stopwords=stopwords, background_color="white").generate(text)
+plt.imshow(wordcloud, interpolation='bilinear')
+plt.axis("off")
+plt.suptitle("Churn Reason", fontsize = 30)
+plt.tight_layout()
+plt.savefig('fig6.png')
+```
+\begin{figure}
+  \begin{minipage}[t]{0.5\textwidth}
+  \hfill\break    
+        A simple way of gaining insight into why customers are churning is by asking them directly. Telco records the responses to a survey that asks customers who are cancelling their services about the specific reason for leaving.\\
+        \\
+        Figure 8 visualizes the most common words from these customer surveys by generating a word cloud, where a larger font size corresponds to a higher frequency of the word. Overall, the most common churn reason can be attributed to competitors. Other words that stand out, such as support and attitude, suggest that negative customer support experiences are another frequent churn reason.
+  \end{minipage}
+  \begin{minipage}[t]{0.5\textwidth}\raggedleft
+  \raisebox{\dimexpr-\height+\ht\strutbox\relax}{\includegraphics[width=\linewidth]{fig6.png}}
+  \caption{Most customers churn due to competitors and negative customer support experiences.}
+  \end{minipage}
+\end{figure}
+
+
+# Modeling
+
+# Results
+
+# Conclusion
