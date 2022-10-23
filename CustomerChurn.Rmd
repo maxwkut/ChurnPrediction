@@ -35,11 +35,11 @@ import matplotlib.patches as mpatches
 
 # Introduction
 
-Interested in churn rate, retention rate
+Telco, a company providing home internet and phone services, is interested in identifying customers who are at risk of churning. Customers can easily switch from one service provider to the next, making the telecommunications industry highly competitive with an average annual churn rate of 22%. The company has determined that focusing on customer retention rather than acquisition best aligns with their long-term goal of increasing profits. According to their research, acquiring a new customer can cost around 5 times more than retaining an existing customer. Furthermore, even a small increase in customer retention can lead to a large increase in profits. Telco has found that customers are likely to spend more with companies they have already done business with. Furthermore, repeat customers are more likely to refer others, which will support long-term growth.
+By identifying customers that are likely to churn, Telco can launch targeted business campaigns to this subset of customers in an effort to increase retention.
 
-Does churn rate depend on tenure of the customers?
 
-so increasing the value of your existing customers is a great way to drive growth.
+
 
 ```{python, include=F}
 data = pd.read_csv("CustomerChurn.csv")
@@ -56,11 +56,10 @@ data[["Total Charges"]] = data[["Total Charges"]].replace(-1000,np.nan, regex=Tr
 
 ```
 
-\newpage
 
 # Exploratory Data Analysis
 
-The data set contains 7043 observations and 33 features. Each observation corresponds to a different customer, whereas the features relate to demographic information of the customers, such as gender, age, and location, as well as the types of services purchased and their cost. Figure 1 shows that Telco customers are located in California and clustered around big cities such as Los Angeles, San Francisco, and San Jose. There also doesn't seem to be any apparent relationship between churn rate and customer location.
+The data set contains 7043 observations and 33 features. Each observation corresponds to a different customer, whereas the features relate to demographic information of the customers, such as gender, age, and location, as well as the types of services purchased and their cost. Customers are labeled as churned if they have left the business within the last month. Figure 1 shows that Telco customers are located in California and clustered around big cities such as Los Angeles, San Francisco, and San Jose. There also doesn't seem to be any apparent relationship between churn rate and customer location.
 \newline
 
 
@@ -191,6 +190,8 @@ vals.append((data2["Tech Support"].value_counts())["Yes"])
 neu2 = pd.DataFrame({'Service': names, 'Number of Subscribers' : vals}).sort_values("Number of Subscribers", ascending = False)
 ```
 
+ 
+ 
 ```{python, echo=F, results='hide', fig.cap = "The majority of customers are subscribed to phone and internet services. Tech support and online security are the least popular services. Churn rate decreases with popularity."}
 plt.rcParams["figure.figsize"] = [7.00, 3]
 plt.rcParams["figure.autolayout"] = True
@@ -211,6 +212,8 @@ plt.show();
 
 
 Customers can choose between three different types of contracts: month-to-month, one year, and two year. In addition, they have the option to opt in to paperless billing choose between different payment methods. Churn rates among different payment related variables are displayed in Figure 6. 
+
+\newpage
 
 ```{python, include =F}
 # Create df for contracts
@@ -331,6 +334,8 @@ plt.show();
 
 There are a roughly equal number of male and female customers. The churn rate does not differ significantly between the two genders. Furthermore, customers with dependents have a relatively low churn rate. 
 
+\newpage
+
 ```{python, include=F, fig.cap="\\label{fig:figs}The most common churn reasons can be attributed to competitors and negative customer support experiences"}
 # transfor text data
 texdata = data[~data["Churn Reason"].isnull()]["Churn Reason"]
@@ -347,6 +352,7 @@ plt.suptitle("Churn Reason", fontsize = 30)
 plt.tight_layout()
 plt.savefig('fig6.png')
 ```
+
 \begin{figure}
   \begin{minipage}[t]{0.5\textwidth}
   \hfill\break    
@@ -360,9 +366,227 @@ plt.savefig('fig6.png')
   \end{minipage}
 \end{figure}
 
+The "Total Charges" feature has 11 observations with missing values. These observations correspond to customers that have a tenure of less than a month. Since churn values are established for customers that churned within the last month, the best way to deal with these observations is to drop them.
+
+
+```{python, echo=F}
+data =data[data["Tenure Months"] != 0]
+```
+
+The heatmap in Figure 9 describes the correlation among the four quantitative features in the data set. Since total charges are calculated as the monthly charges times the tenure, it is no surprise that they are highly correlated.
+
+```{python, echo=F, fig.cap = "Total charges are highly correlated with tenure and monthly charges.", results = 'hide'}
+plt.rcParams["figure.figsize"] = [7.00, 3]
+plt.rcParams["figure.autolayout"] = True
+fig, ax =plt.subplots(1,1)
+yolo= sns.color_palette("light:b", as_cmap=True)
+sns.heatmap(data=data[['Tenure Months', 'CLTV', 'Total Charges', 'Monthly Charges']].corr(),
+            annot=True, cmap=yolo, linewidth = 1)
+plt.xticks(fontsize= 8) 
+plt.yticks(fontsize= 8)
+        
+fig.suptitle('Correlation of Quantitative Features')
+plt.show();
+```
+
+
 
 # Modeling
 
+```{python, echo=F}
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import OneHotEncoder
+from imblearn.over_sampling import SMOTE
+
+# create x and y
+x = data.drop(["CustomerID", "City", "Zip Code", "Latitude", "Longitude", "Churn Label","Churn Reason", "Churn Value"], axis = 1).copy()
+y = data["Churn Value"].copy()
+y = y.astype('int')
+# train test split
+X_train, X_test, y_train, y_test = train_test_split(x,y, train_size = 0.8, random_state = 123, stratify = y)
+
+# new dimension sanity check
+#X_train.info()
+#y_train.info()
+#X_test.info()
+#y_test.info()
+
+# One hot encode categorical features
+ohe = OneHotEncoder(handle_unknown = 'error')
+encoded_train = ohe.fit_transform(X_train.select_dtypes(include = "object")).toarray()
+feature_labels = ohe.get_feature_names()
+feature_labels = np.array(feature_labels).ravel()
+X_trainCat = pd.DataFrame(encoded_train, columns = feature_labels)
+
+encoded_test = ohe.transform(X_test.select_dtypes(include = "object")).toarray()
+X_testCat = pd.DataFrame(encoded_test, columns = feature_labels)
+
+# Merge with quant features
+X_train =  X_train.reset_index(drop = True)
+X_test = X_test.reset_index(drop = True)
+X_trainFull = pd.concat([X_trainCat, X_train.select_dtypes(include = "number")], axis = 1)
+X_testFull = pd.concat([X_testCat, X_test.select_dtypes(include = "number")], axis = 1)
+```
+
+Most machine learning models don't natively support non-numeric data. Hence, all categorical features are manually transformed into dummy variables via one-hot-encoding prior to being used as input for modeling. In addition, uninformative features such as Customer ID, Country, and State  are dropped. This results in a new data frame with dimensions 7032 x 47.
+
+Another thing to consider before training models is that there exists an unequal proportion of churned and non-churned customers in the data set, which will negatively impact prediction performance of the minority class. Synthetic Minority Over-Sampling Technique (SMOTE) is used to address this issue and create a more balanced data set.
+
+Different classification models are used to predict churning customers. These include tree ensembles such as Random Forests and XGBoost, as well as other parametric models such as Logistic Regression and Logistic Elastic Net. Classification results are summarized in figures 10 to 13. Each figure is comprised of a table of performance metrics on and a confusion matrix, where 1 represents churned customers and 0 represents non-churned customers.
+
+```{python, echo=F, results = 'hide'}
+### Hyperparam tuning
+from sklearn.model_selection import GridSearchCV
+from sklearn.ensemble import RandomForestClassifier
+from sklearn import metrics
+from sklearn.metrics import plot_confusion_matrix, make_scorer
+# Create a search grid of parameters that will be shuffled through
+param_grid = {'max_depth': [20,40,80],'min_samples_leaf': [1,4],'n_estimators': [100,200, 400, 500, 1000]}
+
+scorer = make_scorer(metrics.recall_score,pos_label = 1)
+# train and predict
+rf_classifier = RandomForestClassifier(random_state = 123)
+
+# Using the random grid and searching for best hyperparameters
+
+rf_gr = GridSearchCV(estimator = rf_classifier, param_grid = param_grid, cv = 5, n_jobs = -1, scoring = scorer)
+
+rf_gr.fit(X_trainFull, y_train) #fit is to initiate training process
+rf_classifier.fit(X_trainFull, y_train)
+y_pred = rf_gr.predict(X_testFull)
+```
+
+```{python, echo = F, results= 'hide', fig.cap= 'Random Forests: High Accuracy, low Recall.'}
+
+
+
+df = pd.DataFrame({'Metric': ['Accuracy','Precision', 'Recall', 'F1-Beta'],'Score': [round(metrics.accuracy_score(y_test, y_pred),3), round(metrics.precision_score(y_test, y_pred),3),round(metrics.recall_score(y_test, y_pred),3),round(metrics.fbeta_score(y_test, y_pred, beta= 0.75),3)]})
+
+plt.rcParams["figure.figsize"] = [7.00, 3]
+plt.rcParams["figure.autolayout"] = True
+plt.rcParams["xtick.labeltop"] = True
+plt.rcParams["xtick.labelbottom"] = False
+plt.rcParams["axes.grid"] = False
+
+fig = plt.figure()
+ax1 = fig.add_subplot(121)
+ax2 = fig.add_subplot(122)
+plot_confusion_matrix(rf_gr, X_testFull, y_test, cmap = yolo, labels = [1,0], colorbar = False, ax= ax2)
+plt.title('Predicted')
+plt.ylabel('Actual')
+plt.xlabel('')
+plt.suptitle('Random Forests')
+
+bbox = [0, 0, 1, 1]
+ax1.axis('off')
+mpl_table = ax1.table(cellText=df.values, bbox=bbox, colLabels=df.columns)
+plt.show()
+
+```
+
+```{python, echo=F, results = 'hide'}
+# scale_pos_weight adds penalty to incorrectly classifying minority class
+import xgboost as xgb
+
+param_grid = {'max_depth': [3,4,5], 'learning_rate':[0.01],'reg_lambda':[10,30],'scale_pos_weight': [1,3,5], 'n_estimators': [50]}
+
+xgb_classifier = xgb.XGBClassifier(objective='binary:logistic', eval_metric='aucpr')
+xgb_gr = GridSearchCV(estimator = xgb_classifier, param_grid = param_grid, cv = 5, n_jobs = -1, scoring = scorer)
+#xgb_classifier.fit(X_trainFull, y_train) 
+xgb_gr.fit(X_trainFull, y_train)
+y_pred = xgb_gr.predict(X_testFull)
+```
+
+```{python, echo = F, results= F, fig.cap= 'XGBoost: Low Accuracy, high Recall.'}
+df = pd.DataFrame({'Metric': ['Accuracy','Precision', 'Recall', 'F1-Beta'],'Score': [round(metrics.accuracy_score(y_test, y_pred),3), round(metrics.precision_score(y_test, y_pred, pos_label =1),3),round(metrics.recall_score(y_test, y_pred, pos_label = 1),3),round(metrics.fbeta_score(y_test, y_pred, pos_label = 1, beta= 0.75),3)]})
+
+fig = plt.figure()
+ax1 = fig.add_subplot(121)
+ax2 = fig.add_subplot(122)
+plot_confusion_matrix(xgb_gr, X_testFull, y_test, cmap = yolo, labels = [1,0], colorbar = False, ax= ax2)
+plt.title('Predicted')
+plt.ylabel('Actual')
+plt.xlabel('')
+plt.suptitle('XGBoost')
+
+bbox = [0, 0, 1, 1]
+ax1.axis('off')
+mpl_table = ax1.table(cellText=df.values, bbox=bbox, colLabels=df.columns)
+plt.show()
+
+#plot 1 tree and feature importance
+```
+
+```{python, echo =F, results = 'hide'}
+from sklearn.linear_model import LogisticRegressionCV
+logi_classifier = LogisticRegressionCV(cv=5, class_weight = 'balanced')
+elastic_net_classifier = LogisticRegressionCV(cv=5, penalty='elasticnet', l1_ratios=[0.1, 0.5, 0.9], solver='saga', class_weight = 'balanced' , n_jobs = -1)
+logi_classifier.fit(X_trainFull, y_train)
+elastic_net_classifier.fit(X_trainFull, y_train)
+y_pred1 = logi_classifier.predict(X_testFull)
+y_pred2 = elastic_net_classifier.predict(X_testFull)
+df1 = pd.DataFrame({'Metric': ['Accuracy','Precision', 'Recall', 'F1-Beta'],'Score': [round(metrics.accuracy_score(y_test, y_pred1),3), round(metrics.precision_score(y_test, y_pred1, pos_label =1),3),round(metrics.recall_score(y_test, y_pred1, pos_label = 1),3),round(metrics.fbeta_score(y_test, y_pred1, pos_label = 1, beta= 0.75),3)]})
+df2 = pd.DataFrame({'Metric': ['Accuracy','Precision', 'Recall', 'F1-Beta'],'Score': [round(metrics.accuracy_score(y_test, y_pred2),3), round(metrics.precision_score(y_test, y_pred2, pos_label =1),3),round(metrics.recall_score(y_test, y_pred2, pos_label = 1),3),round(metrics.fbeta_score(y_test, y_pred2, pos_label = 1, beta= 0.75),3)]})
+
+```
+
+```{python, echo = F, results = 'hide', fig.cap= 'Logistic Regression: Medium Accuracy, medium Recall.'}
+fig = plt.figure()
+ax1 = fig.add_subplot(121)
+ax2 = fig.add_subplot(122)
+plot_confusion_matrix(logi_classifier, X_testFull, y_test, cmap = yolo, labels = [1,0], colorbar = False, ax= ax2)
+plt.title('Predicted')
+plt.ylabel('Actual')
+plt.xlabel('')
+plt.suptitle('Logistic Regression')
+
+bbox = [0, 0, 1, 1]
+ax1.axis('off')
+mpl_table = ax1.table(cellText=df1.values, bbox=bbox, colLabels=df1.columns)
+plt.show()
+```
+
+```{python, echo = F, results = 'hide', fig.cap= 'Logistic Elastic Net: Medium Accuracy, medium Recall.'}
+fig = plt.figure()
+ax1 = fig.add_subplot(121)
+ax2 = fig.add_subplot(122)
+plot_confusion_matrix(elastic_net_classifier, X_testFull, y_test, cmap = yolo, labels = [1,0], colorbar = False, ax= ax2)
+plt.title('Predicted')
+plt.ylabel('Actual')
+plt.xlabel('')
+plt.suptitle('Logistic Elastic Net')
+
+bbox = [0, 0, 1, 1]
+ax1.axis('off')
+mpl_table = ax1.table(cellText=df2.values, bbox=bbox, colLabels=df2.columns)
+plt.show()
+```
+
+
 # Results
 
+All models face a trade-off between Type I and Type II error. It is important to carefully consider this trade-off and the business implications when deciding on an evaluation metric. A Type I error occurs when a customer is falsely predicted to churn. On the other hand, a Type II error occurs when a customer is falsely predicted not to churn.
+
+For Telco, this means that a Type II error would result in targeting non-churning customers with campaigns directed at churning customers. Although this could have negative consequences in the long-run, it is arguably more desirable than failing to identify churning customers. Thus, models with low Type I error are preferred over models with low Type II error.
+
+For this reason, performance metrics such as Recall and the F1-beta score are preferred over Accuracy. Recall, sometimes referred to as Sensitivity or True Positive Rate, measures the fraction of actual churned customers that were correctly classified. The F1-beta score uses a weighted approach to strike a balance between Recall and Precision, where Precision measures the fraction of churned predictions that are actual churned customers. 
+
+Table X summarizes the model results and indicates that X algorithm performs the best when measured by Recall and F1-beta score. 
+
+Assuming that the target campaigns have a 50% effectiveness ....
+
+```{r, eval=F}
+library(dplyr)
+library(kableExtra)
+kable(py$df, digits=2)%>%
+  kable_styling(font_size = 12, latex_options = "hold_position")%>%
+  row_spec(0, bold = TRUE)%>%
+  kableExtra::pack_rows("Baseline", 1,1 )%>%
+  kableExtra::pack_rows("Top 3 SARIMA", 3,3 )
+```
+
+
+
 # Conclusion
+
+Summarized the findings of the report. How this will benefit people. Where future research could go.
