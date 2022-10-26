@@ -6,9 +6,6 @@ output:
   pdf_document:
     toc: yes
     fig_caption: yes
-  html_document:
-    toc: yes
-    df_print: paged
 header-includes:
 - \usepackage{graphicx}
 - \usepackage{float}
@@ -30,16 +27,19 @@ from wordcloud import ImageColorGenerator
 from wordcloud import STOPWORDS
 import matplotlib.patches as mpatches
 ```
-
-\newpage
-
+\hfill\break
+\hfill\break
+\hfill\break
+       
+       
+       
 # Introduction
 
-Telco, a company providing home internet and phone services, is interested in identifying customers who are at risk of churning. Customers can easily switch from one service provider to the next, making the telecommunications industry highly competitive with an average annual churn rate of 22%. The company has determined that focusing on customer retention rather than acquisition best aligns with their long-term goal of increasing profits. According to their research, acquiring a new customer can cost around 5 times more than retaining an existing customer. Furthermore, even a small increase in customer retention can lead to a large increase in profits. Telco has found that customers are likely to spend more with companies they have already done business with. Furthermore, repeat customers are more likely to refer others, which will support long-term growth.
-By identifying customers that are likely to churn, Telco can launch targeted business campaigns to this subset of customers in an effort to increase retention.
+In the telecommunications industry customers frequently switch from one service provider to the next. This makes it a highly competitive industry with an average annual churn rate of 22% (Liibert, 2021). Telco, a company providing home internet and phone services, is interested in testing a new strategy for increasing customer retention.
 
-
-
+The company has determined that focusing on customer retention rather than acquisition best aligns with their long-term goal of increasing profits. According to their research, acquiring a new customer can cost around 5 times more than retaining an existing customer. Furthermore, even a small increase in customer retention can lead to a large increase in profits. Telco has found that customers are likely to spend more with companies they have already done business with. Furthermore, repeat customers are more likely to refer others, which will support long-term growth.
+This analysis focuses on predicting customer churn. By identifying customers who are at risk of churning, Telco can target these customers with incentives to stay and increase retention. The company is interested in a predictive model, as well as understanding important variables affecting customer churn. The company is also considering to send out a 20% discount code to customers who are at risk of churning and is inquiring about the profitability of the proposed incentive program. 
+\newpage
 
 ```{python, include=F}
 data = pd.read_csv("CustomerChurn.csv")
@@ -56,13 +56,11 @@ data[["Total Charges"]] = data[["Total Charges"]].replace(-1000,np.nan, regex=Tr
 
 ```
 
-
 # Exploratory Data Analysis
 
-The data set contains 7043 observations and 33 features. Each observation corresponds to a different customer, whereas the features relate to demographic information of the customers, such as gender, age, and location, as well as the types of services purchased and their cost. Customers are labeled as churned if they have left the business within the last month. Figure 1 shows that Telco customers are located in California and clustered around big cities such as Los Angeles, San Francisco, and San Jose. There also doesn't seem to be any apparent relationship between churn rate and customer location.
-\newline
+The data set contains 7043 observations and 33 features and is made available on Kaggle. Each observation corresponds to a different customer, whereas the features relate to demographic information of the customers, such as gender, age, and location, as well as the types of services purchased and their cost. Customers are labeled as churned if they have left the business within the last month. Python is used to analyze the data and compile the report. 
 
-
+Figure 1 shows that Telco customers are located in California and clustered around big cities such as Los Angeles, San Francisco, and San Jose. There also doesn't seem to be any apparent relationship between churn rate and customer location.
 
 ```{python, include=F, }
 fig = px.scatter_mapbox(data,lat='Latitude',lon='Longitude', zoom = 4.4, opacity = 0.2, center = dict(lat=37, lon=-115), color = "Churn Label", color_discrete_sequence = ['#EF553B','#636EFA'])
@@ -73,9 +71,6 @@ fig.write_image('map.png', width = 1500, height = 800)
 ```
 
 ![Customers are located in California and clustered around large metropolitans. There does not appear to be a relationship between churn rate and customer location.](map.png)
-
-
-
 
 ```{python, include=F, fig.cap="\\label{fig:figs}The current churn rate is around 25%."}
 sns.set_theme()
@@ -116,7 +111,7 @@ plt.show()
 \begin{figure}
   \begin{minipage}[t]{0.5\textwidth}
   \hfill\break
-        The current churn rate is around 25\%. In other words, approximately 1 out of 4 customers ended up \-cancelling their business with the company (Figure 2), which is quite high. One way of gauging the incurred loss due to churned customers is by estimating their overall value to the company. The customer lifetime value (CLTV) estimates a customer's value and is calculated using corporate formulas and existing data. The higher the value, the more valuable the customer. High value customers should be monitored for churn since they are the most profitabland it costs less to keep existing customers than it does to acquire new ones. 
+        As seen in Figure 2, the current churn rate is around 25\%. In other words, approximately 1 out of 4 customers ends up \-cancelling their business with the company.One way of gauging the incurred loss due to churned customers is by estimating their overall value to the company. The customer lifetime value (CLTV) estimates a customer's value and is calculated using corporate formulas and existing data. The higher the value, the more valuable the customer. High value customers should be monitored for churn since they are the most profitable and it costs less to keep existing customers than it does to acquire new ones. 
   \end{minipage}
   \begin{minipage}[t]{0.5\textwidth}\raggedleft
   \raisebox{\dimexpr-\height+\ht\strutbox\relax}{\includegraphics[width=\linewidth]{fig2.png}}
@@ -125,8 +120,8 @@ plt.show()
 \end{figure}
 \newpage
 
-Figure 3 displays how the CLTV is distributed among churned and and non-churned customers. 
-It also takes into account total number of months that the customer has been with the company. On average, churned customers have a lower life-time value to the company. Furthermore, long-term customers have a higher value and are less likely to churn.
+Figure 3 displays how CLTV is distributed among churned and and non-churned customers. 
+It also takes into account the total number of months that a customer has been with the company. On average, churned customers have a lower life-time value to the company. Furthermore, long-term customers have a higher value and are less likely to churn.
 
 ```{python, echo=F, fig.cap = "On average, the estimated CLTV is lower in churned customers. Long-term customers have a higher value and are less likely to churn."}
 import warnings
@@ -148,7 +143,6 @@ plt.show()
 
 The data set also contains information on the total monthly charges for each customer. This can be used to calculate the total revenue that is lost due to churned customers. Overall, churned customers constitute around $140,000 in lost revenue, which translates to 30% of total revenue. Figure 4 summarizes the distribution of monthly charges across churned and non-churned customers and indicates that higher monthly charges seem to correlate with higher churn rates.
 
-
 ```{python, echo = F, fig.cap = "Higher monthly charges are correlated with higher churn rates"}
 plt.rcParams["figure.figsize"] = [7.00, 3]
 plt.rcParams["figure.autolayout"] = True
@@ -162,9 +156,7 @@ bottom_bar = mpatches.Patch(color='#C97E97', label='Yes')
 plt.legend(handles=[bottom_bar, top_bar], title = "Churned")
 ```
 
-\newpage
-
-Total monthly charges are calculated based on different services that a customer is subscribed to. These services involve phone service, internet service, multiple lines, online security, online backup, device protection, and tech support. Figure 5 summarizes the popularity of these services by displaying the number of customers subscribed to them, as well as the churn rate within each service. The majority of customers are subscribed to phone and internet services, whereas tech support and online security are the least popular services. Furthermore, customers that are subscribed to less popular services seem to be less likely to churn.
+Total monthly charges are calculated based on the different kinds of services that a customer is subscribed to. These services include phone service, internet service, multiple lines, online security, online backup, device protection, and tech support. Figure 5 summarizes the popularity of these services by displaying the number of customers subscribed to them, as well as the churn rate within each service. The majority of customers are subscribed to phone and internet services, whereas tech support and online security are the least popular services. Furthermore, customers that bought the internet service have a high churn rate and customers that are subscribed to less popular services seem to be less likely to churn.
 
 ```{python, include =F}
 names = ["Phone Service", "Internet Service", "Multiple Lines", "Online Security", "Online Backup", "Device Protection", "Tech Support"]
@@ -190,8 +182,6 @@ vals.append((data2["Tech Support"].value_counts())["Yes"])
 neu2 = pd.DataFrame({'Service': names, 'Number of Subscribers' : vals}).sort_values("Number of Subscribers", ascending = False)
 ```
 
- 
- 
 ```{python, echo=F, results='hide', fig.cap = "The majority of customers are subscribed to phone and internet services. Tech support and online security are the least popular services. Churn rate decreases with popularity."}
 plt.rcParams["figure.figsize"] = [7.00, 3]
 plt.rcParams["figure.autolayout"] = True
@@ -209,11 +199,7 @@ plt.legend(handles=[bottom_bar, top_bar], title = "Churned")
 plt.show();
 ```
 
-
-
-Customers can choose between three different types of contracts: month-to-month, one year, and two year. In addition, they have the option to opt in to paperless billing choose between different payment methods. Churn rates among different payment related variables are displayed in Figure 6. 
-
-\newpage
+Customers can choose between three different types of contracts: month-to-month, one year, and two year. In addition, they have the option to opt in to paperless billing and choose between different payment methods. Churn rates of different payment related variables are displayed in Figure 6. 
 
 ```{python, include =F}
 # Create df for contracts
@@ -274,9 +260,8 @@ plt.show();
 ```
 
 Month-to-month contracts are the most popular option and are associated with the highest churn rates. On the other hand, long-term contracts are less popular but have a very low churn rate. Most customers pay via electronic check, which has a higher churn rate than other payment methods.
-\newline
 
-Demographic information on the customers include whether they are a senior citizen, have dependents, or have a partner, as well as their gender. Figure 7 plots churn rates by taking into account demographic information.
+Demographic information on customers include whether they are a senior citizen, have dependents, as well as their gender and if they have a partner. Figure 7 plots churn rates after taking demographic information into account.
 
 ```{python, include =F}
 # Create df for Gender
@@ -311,8 +296,7 @@ vals.append((data2["Partner"].value_counts())["Yes"])
 neu4 = pd.DataFrame({'Other Attributes': names, 'Number of Customers' : vals}).sort_values("Number of Customers", ascending = False)
 ```
 
-
-```{python, echo=F, fig.cap = "Churn rates do not differ between genders. Customers with dependents have a comparatively low churn rate."}
+```{python, echo=F, fig.cap = "Churn rates do not differ significantly between genders. Customers with dependents have a comparatively low churn rate."}
 plt.rcParams["figure.figsize"] = [7.00, 3]
 plt.rcParams["figure.autolayout"] = True
 fig, ax = plt.subplots(1,2)
@@ -332,9 +316,7 @@ fig.suptitle("Churn Rates Across Demographic Information")
 plt.show();
 ```
 
-There are a roughly equal number of male and female customers. The churn rate does not differ significantly between the two genders. Furthermore, customers with dependents have a relatively low churn rate. 
-
-\newpage
+There are a roughly equal number of male and female customers and churn rates do not differ significantly between the two genders. Furthermore, customers with dependents have a relatively low churn rate. 
 
 ```{python, include=F, fig.cap="\\label{fig:figs}The most common churn reasons can be attributed to competitors and negative customer support experiences"}
 # transfor text data
@@ -356,9 +338,9 @@ plt.savefig('fig6.png')
 \begin{figure}
   \begin{minipage}[t]{0.5\textwidth}
   \hfill\break    
-        A simple way of gaining insight into why customers are churning is by asking them directly. Telco records the responses to a survey that asks customers who are cancelling their services about the specific reason for leaving.\\
+        A simple way of gaining insight into the reason why customers are churning is by asking them directly. Telco records the responses to a survey that asks customers who are cancelling their services about the specific reason for leaving.\\
         \\
-        Figure 8 visualizes the most common words from these customer surveys by generating a word cloud, where a larger font size corresponds to a higher frequency of the word. Overall, the most common churn reason can be attributed to competitors. Other words that stand out, such as support and attitude, suggest that negative customer support experiences are another frequent churn reason.
+        Figure 8 visualizes the most common words from these customer surveys by generating a word cloud, where a larger font size corresponds to a higher frequency of the word. Overall, the most common reported churn reason relates to competitors offering  better services. Other words that stand out, such as support and attitude, suggest that negative customer support experiences are another frequent churn reason.
   \end{minipage}
   \begin{minipage}[t]{0.5\textwidth}\raggedleft
   \raisebox{\dimexpr-\height+\ht\strutbox\relax}{\includegraphics[width=\linewidth]{fig6.png}}
@@ -366,14 +348,13 @@ plt.savefig('fig6.png')
   \end{minipage}
 \end{figure}
 
-The "Total Charges" feature has 11 observations with missing values. These observations correspond to customers that have a tenure of less than a month. Since churn values are established for customers that churned within the last month, the best way to deal with these observations is to drop them.
-
-
 ```{python, echo=F}
 data =data[data["Tenure Months"] != 0]
 ```
 
-The heatmap in Figure 9 describes the correlation among the four quantitative features in the data set. Since total charges are calculated as the monthly charges times the tenure, it is no surprise that they are highly correlated.
+The heatmap in Figure 9 describes the correlation among the four quantitative features in the data set. Since total charges are calculated as the product of monthly charges and tenure, it is no surprise that they are highly correlated.
+
+\newpage
 
 ```{python, echo=F, fig.cap = "Total charges are highly correlated with tenure and monthly charges.", results = 'hide'}
 plt.rcParams["figure.figsize"] = [7.00, 3]
@@ -389,9 +370,9 @@ fig.suptitle('Correlation of Quantitative Features')
 plt.show();
 ```
 
-
-
 # Modeling
+
+Total Charges is the only feature with missing values. These observations correspond to customers that have a tenure of less than a month. Since churn values are established for customers that churned within the last month, the best way to deal with these observations is to drop them. Note that since the entire feature is highly correlated with Tenure Months and Monthly Charges, it is not very informative to begin with and can even negatively affect some of the models. Therefore, the entire feature is excluded from the analysis.
 
 ```{python, echo=F}
 from sklearn.model_selection import train_test_split
@@ -399,14 +380,14 @@ from sklearn.preprocessing import OneHotEncoder
 from imblearn.over_sampling import SMOTE
 
 # create x and y
-x = data.drop(["CustomerID", "City", "Zip Code", "Latitude", "Longitude", "Churn Label","Churn Reason", "Churn Value"], axis = 1).copy()
+x = data.drop(["Total Charges", "CustomerID", "City", "Zip Code", "Latitude", "Longitude", "Churn Label","Churn Reason", "Churn Value"], axis = 1).copy()
 y = data["Churn Value"].copy()
 y = y.astype('int')
 # train test split
 X_train, X_test, y_train, y_test = train_test_split(x,y, train_size = 0.8, random_state = 123, stratify = y)
 
 # new dimension sanity check
-#X_train.info()
+#X_trainFull.info()
 #y_train.info()
 #X_test.info()
 #y_test.info()
@@ -428,11 +409,15 @@ X_trainFull = pd.concat([X_trainCat, X_train.select_dtypes(include = "number")],
 X_testFull = pd.concat([X_testCat, X_test.select_dtypes(include = "number")], axis = 1)
 ```
 
-Most machine learning models don't natively support non-numeric data. Hence, all categorical features are manually transformed into dummy variables via one-hot-encoding prior to being used as input for modeling. In addition, uninformative features such as Customer ID, Country, and State  are dropped. This results in a new data frame with dimensions 7032 x 47.
+Most machine learning models don't natively support non-numeric data. Hence, all categorical features are manually transformed into dummy variables via one-hot-encoding prior to being used as input for modeling. In addition, uninformative features such as Customer ID, Country, and State  are dropped. This results in a new data set with dimensions 7032 x 46.
 
-Another thing to consider before training models is that there exists an unequal proportion of churned and non-churned customers in the data set, which will negatively impact prediction performance of the minority class. Synthetic Minority Over-Sampling Technique (SMOTE) is used to address this issue and create a more balanced data set.
+Another thing to consider before training models is that there exists an unequal proportion of churned and non-churned customers in the data set, which will negatively impact prediction performance of the minority class. Synthetic Minority Over-Sampling Technique (SMOTE) is used to address this issue by creating a more balanced training data set.
 
-Different classification models are used to predict churning customers. These include tree ensembles such as Random Forests and XGBoost, as well as other parametric models such as Logistic Regression and Logistic Elastic Net. Classification results are summarized in figures 10 to 13. Each figure is comprised of a table of performance metrics on and a confusion matrix, where 1 represents churned customers and 0 represents non-churned customers.
+Different classification models are used to predict churning customers. These include tree ensembles such as Random Forests and XGBoost, as well as other parametric models such as Logistic Regression and Logistic Elastic Net. All models are trained on a training set and evaluated on an independent test set. Classification results are summarized in figures 10 to 13. Each figure is comprised of a table of performance metrics and a confusion matrix, where 1 represents churned customers and 0 represents non-churned customers.
+    
+Figure 10 shows that the Random Forests model has high overall Accuracy but does not do very well at predicting the minority class (customer churn).
+
+\newpage
 
 ```{python, echo=F, results = 'hide'}
 ### Hyperparam tuning
@@ -457,9 +442,6 @@ y_pred = rf_gr.predict(X_testFull)
 ```
 
 ```{python, echo = F, results= 'hide', fig.cap= 'Random Forests: High Accuracy, low Recall.'}
-
-
-
 df = pd.DataFrame({'Metric': ['Accuracy','Precision', 'Recall', 'F1-Beta'],'Score': [round(metrics.accuracy_score(y_test, y_pred),3), round(metrics.precision_score(y_test, y_pred),3),round(metrics.recall_score(y_test, y_pred),3),round(metrics.fbeta_score(y_test, y_pred, beta= 0.75),3)]})
 
 plt.rcParams["figure.figsize"] = [7.00, 3]
@@ -483,6 +465,8 @@ mpl_table = ax1.table(cellText=df.values, bbox=bbox, colLabels=df.columns)
 plt.show()
 
 ```
+
+Figure 11 summarizes the XGBoost results, which has lower Accuracy than the Random Forests model but performs much better at predicting customer churn.
 
 ```{python, echo=F, results = 'hide'}
 # scale_pos_weight adds penalty to incorrectly classifying minority class
@@ -517,6 +501,10 @@ plt.show()
 #plot 1 tree and feature importance
 ```
 
+Figure 12 displays the Logistic Regression prediction results with Accuracy and Recall scores falling in between the two tree-based models. 
+
+\newpage
+
 ```{python, echo =F, results = 'hide'}
 from sklearn.linear_model import LogisticRegressionCV
 logi_classifier = LogisticRegressionCV(cv=5, class_weight = 'balanced')
@@ -546,6 +534,8 @@ mpl_table = ax1.table(cellText=df1.values, bbox=bbox, colLabels=df1.columns)
 plt.show()
 ```
 
+The Logistic Elastic Net predictions are summarized in Figure 13. This model performes slightly worse than Logistic Regression across all metrics. 
+
 ```{python, echo = F, results = 'hide', fig.cap= 'Logistic Elastic Net: Medium Accuracy, medium Recall.'}
 fig = plt.figure()
 ax1 = fig.add_subplot(121)
@@ -562,31 +552,77 @@ mpl_table = ax1.table(cellText=df2.values, bbox=bbox, colLabels=df2.columns)
 plt.show()
 ```
 
+Permutation feature importance is a technique that is used to measure the importance of features for a particular model. It is defined to be the decrease in a model score when a single feature value is randomly shuffled.  If a feature is highly important then the prediction score should decrease substantially after \newline
+permuting the values for that feature. Figure 14 plots the permutation feature importance of the XGBoost model and indicates that contract type and tenure are highly important predictors of customer churn. Monthly charges, internet service, and dependents are also among the most important features.
+
+\newpage
+
+```{python, echo=F, results = 'hide', fig.cap = "Contract type and tenure are highly important predictors of customer churn. Monthly charges, internet service, and dependents are also among the most important features."}
+from sklearn.inspection import permutation_importance
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import OrdinalEncoder
+from sklearn.impute import SimpleImputer
+
+plt.rcParams["figure.figsize"] = [7.00, 5]
+plt.rcParams["xtick.labeltop"] = False
+plt.rcParams["xtick.labelbottom"] = True
+plt.rcParams["axes.grid"] = True
+
+categorical_columns = list(X_train.select_dtypes(include='object'))
+numerical_columns = list(X_train.select_dtypes(include=['int','float']))
+
+categorical_encoder = OrdinalEncoder(handle_unknown="use_encoded_value", unknown_value=-1, encoded_missing_value=-1)
+numerical_pipe = SimpleImputer(strategy="mean")
+
+preprocessing = ColumnTransformer([("cat", categorical_encoder, categorical_columns),("num", numerical_pipe, numerical_columns),],verbose_feature_names_out=False,)
+rf = Pipeline([("preprocess", preprocessing), ("classifier", RandomForestClassifier(random_state=42)),])
+rf.fit(X_train, y_train)
+
+
+result = permutation_importance(
+    rf, X_test, y_test, n_repeats=10, random_state=42, n_jobs=2, scoring = scorer
+)
+
+sorted_importances_idx = result.importances_mean.argsort()
+importances = pd.DataFrame(
+    result.importances[sorted_importances_idx].T,
+    columns=x.columns[sorted_importances_idx],
+)
+fig = plt.figure()
+ax = importances.plot.box(vert=False, whis=10)
+ax.axvline(x=0, color="k", linestyle="--")
+ax.set_xlabel("Decrease in Prediction Score")
+ax.figure.tight_layout()
+plt.suptitle("      Feature Importance")
+plt.show()
+#feature_imp = permutation_importance(logi_classifier, X_testFull, y_test,  n_repeats=10, random_state=123, n_jobs=-1)
+#importances = pd.Series(feature_imp.importances_mean, index=list(X_testFull.columns))
+#fig, ax = plt.subplots()
+#importances.plot.bar(yerr=feature_imp.importances_std, ax=ax)
+#ax.set_title("Feature importances using permutation on full model")
+#ax.set_ylabel("Mean accuracy decrease")
+#fig.tight_layout()
+#plt.show()
+```
 
 # Results
 
-All models face a trade-off between Type I and Type II error. It is important to carefully consider this trade-off and the business implications when deciding on an evaluation metric. A Type I error occurs when a customer is falsely predicted to churn. On the other hand, a Type II error occurs when a customer is falsely predicted not to churn.
+All models face a trade-off between Type I and Type II error and one must carefully consider this trade-off, along with the business implications, when deciding on an evaluation metric. A Type I error occurs when a customer is falsely predicted to churn. On the other hand, a Type II error occurs when a customer is falsely predicted not to churn. For Telco this means that a Type II error would result in targeting non-churning customers with promotions directed at churning customers. Although this is certainly less than ideal, it is arguably more desirable than failing to identify churning customers. Thus, this analysis favors models with low Type I error as opposed to low Type II error.
 
-For Telco, this means that a Type II error would result in targeting non-churning customers with campaigns directed at churning customers. Although this could have negative consequences in the long-run, it is arguably more desirable than failing to identify churning customers. Thus, models with low Type I error are preferred over models with low Type II error.
+In terms of performance metrics, this means that metrics such as Recall and the F1-Beta score are preferred over Accuracy. Recall (sometimes referred to as Sensitivity or True Positive Rate) measures the fraction of actual churned customers that were correctly classified. The F1-Beta score uses a weighted approach to strike a balance between Recall and Precision, where Precision measures the fraction of churned predictions that are actual churned customers. 
 
-For this reason, performance metrics such as Recall and the F1-beta score are preferred over Accuracy. Recall, sometimes referred to as Sensitivity or True Positive Rate, measures the fraction of actual churned customers that were correctly classified. The F1-beta score uses a weighted approach to strike a balance between Recall and Precision, where Precision measures the fraction of churned predictions that are actual churned customers. 
-
-Table X summarizes the model results and indicates that X algorithm performs the best when measured by Recall and F1-beta score. 
-
-Assuming that the target campaigns have a 50% effectiveness ....
-
-```{r, eval=F}
-library(dplyr)
-library(kableExtra)
-kable(py$df, digits=2)%>%
-  kable_styling(font_size = 12, latex_options = "hold_position")%>%
-  row_spec(0, bold = TRUE)%>%
-  kableExtra::pack_rows("Baseline", 1,1 )%>%
-  kableExtra::pack_rows("Top 3 SARIMA", 3,3 )
-```
-
-
+Precision is important in the context of discount codes because a low Precision score translates to more discount codes being handed out to non-churning customers, which would negatively impact the campaigns profitability. The best model maximizes Precision and Recall and yields the highest Return on Investment (ROI). The ROI can be calculated as $ROI = \frac{Revenue - Cost}{Cost}*100$ where $Revenue = P(Success) * (1-Discount)*Monthly\_Cost$ and $Cost = Discount * Monthly\_Cost$. Assuming a 40% success rate and a 20% discount, the ROI for the Logistic Regression Model is 60%, making it the most profitable model.
 
 # Conclusion
 
-Summarized the findings of the report. How this will benefit people. Where future research could go.
+The primary focus of this analysis was on developing a predictive model for identifying customers who are at risk of churning. This model was then used to evaluate the profitability of an incentive program to increase customer retention. It was shown that a targeted 20% discount would result in a 60% ROI under the best performing model. 
+Furthermore, the analysis has revealed which variables have the strongest effect on customer churn. New customers and customers with high monthly charges are most at risk of churning. In addition, customers with an internet subscription are churning at higher rates than other services. The two main churn reasons reported by customers are related to competitors offering better services and dissatisfaction with customer support.
+
+Future research should be done to investigate  self-reported churn reasons. For example, there are a variety of variables related to customer support interactions, such as chat logs, wait time, and the number of exchanges, that could be collected and added to the data set. This would allow Telco to address shortcomings in the services they provide, ensure a better overall customer experience, and ultimately increase customer retention.
+
+\newpage
+
+# References
+
+Liibert, Katheriin. “Essentials of Customer Churn and Retention | Smartlook Blog.” Smartlook Blog, 26 Apr. 2021, https://tinyurl.com/yy2sp33t
