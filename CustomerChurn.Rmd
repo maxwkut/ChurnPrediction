@@ -35,10 +35,10 @@ import matplotlib.patches as mpatches
        
 # Introduction
 
-In the telecommunications industry customers frequently switch from one service provider to the next. This makes it a highly competitive industry with an average annual churn rate of 22% (Liibert, 2021). Telco, a company providing home internet and phone services, is interested in testing a new strategy for increasing customer retention.
+In the telecommunications industry customers frequently switch between service providers. This makes it a highly competitive industry with an average annual churn rate of 22% (Liibert, 2021). Telco, a company providing home internet and phone services, is interested in testing a new strategy for increasing customer retention.
 
 The company has determined that focusing on customer retention rather than acquisition best aligns with their long-term goal of increasing profits. According to their research, acquiring a new customer can cost around 5 times more than retaining an existing customer. Furthermore, even a small increase in customer retention can lead to a large increase in profits. Telco has found that customers are likely to spend more with companies they have already done business with. Furthermore, repeat customers are more likely to refer others, which will support long-term growth.
-This analysis focuses on predicting customer churn. By identifying customers who are at risk of churning, Telco can target these customers with incentives to stay and increase retention. The company is interested in a predictive model, as well as understanding important variables affecting customer churn. The company is also considering to send out a 20% discount code to customers who are at risk of churning and is inquiring about the profitability of the proposed incentive program. 
+This analysis focuses on predicting customer churn. By identifying customers who are at risk of churning, Telco can target these customers with incentives to stay and increase retention. The company is interested in a predictive model, as well as understanding important variables affecting customer churn. Telco is also considering to send out a 20% discount code to customers who are at risk of churning and is inquiring about the profitability of the proposed incentive program. 
 \newpage
 
 ```{python, include=F}
