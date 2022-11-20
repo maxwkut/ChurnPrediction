@@ -6,6 +6,7 @@ output:
   pdf_document:
     toc: yes
     fig_caption: yes
+    keep_md: yes
 header-includes:
 - \usepackage{graphicx}
 - \usepackage{float}
@@ -608,7 +609,7 @@ plt.show()
 
 # Results
 
-All models face a trade-off between Type I and Type II error and one must carefully consider this trade-off, along with the business implications, when deciding on an evaluation metric. A Type I error occurs when a customer is falsely predicted to churn. On the other hand, a Type II error occurs when a customer is falsely predicted not to churn. For Telco this means that a Type II error would result in targeting non-churning customers with promotions directed at churning customers. Although this is certainly less than ideal, it is arguably more desirable than failing to identify churning customers. Thus, this analysis favors models with low Type I error as opposed to low Type II error.
+All models face a trade-off between Type I and Type II error and one must carefully consider this trade-off, along with the business implications, when deciding on an evaluation metric. A Type I error occurs when a customer is falsely predicted to churn. On the other hand, a Type II error occurs when a customer is falsely predicted not to churn. For Telco this means that a Type I error would result in targeting non-churning customers with promotions directed at churning customers. Although this is certainly less than ideal, it is arguably more desirable than failing to identify churning customers. Thus, this analysis favors models with low Type I error as opposed to low Type II error.
 
 In terms of performance metrics, this means that metrics such as Recall and the F1-Beta score are preferred over Accuracy. Recall (sometimes referred to as Sensitivity or True Positive Rate) measures the fraction of actual churned customers that were correctly classified. The F1-Beta score uses a weighted approach to strike a balance between Recall and Precision, where Precision measures the fraction of churned predictions that are actual churned customers. 
 
